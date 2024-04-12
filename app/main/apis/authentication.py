@@ -67,8 +67,9 @@ def login():
         
         if user.failed_login_attempts >= 4:
             if user.notification_sent == False:
+                reset_token = base64.b64encode(user.email.encode('utf-8')).decode('utf-8')
                 link = current_app.config['DEACTIVATE_ACC']
-                reset_link = f'{link}'
+                reset_link = f'{link}{reset_token}'
                 user.notification_sent = 1
                 db.session.commit()
                 send_login_notification_email(user.email, reset_link)
@@ -83,11 +84,9 @@ def login():
     return jsonify(access_token=access_token), 200
     
 
-@auth_bp.route('/deactivate_account', methods=['POST'])
-def deactivate_account():
-    data = request.json
-    email = data.get('email')
-
+@auth_bp.route('/deactivate_account/<token>', methods=['GET'])
+def deactivate_account(token):
+    email = base64.b64decode(token).decode('utf-8')
     user = User.query.filter_by(email=email).first()
 
     if user:
